@@ -422,6 +422,18 @@ theme_set(theme_minimal() + theme(legend.position = &quot;bottom&quot;))</code><
 ## #   parity &lt;int&gt;, pnumlbw &lt;int&gt;, pnumsga &lt;int&gt;, ppbmi &lt;int&gt;, ppwt &lt;int&gt;,
 ## #   smoken &lt;int&gt;, wtgain &lt;int&gt;</code></pre>
 <p>We confirm there are no missing values in the dataset.</p>
+<p>Try fitting a model. Hypothesize….</p>
+<pre class="r"><code>bwt_data %&gt;%  
+  lm(bwt ~ blength + gaweeks + fincome + pnumlbw + smoken, data = .) %&gt;% 
+  broom::tidy()</code></pre>
+<pre><code>## # A tibble: 5 x 5
+##   term        estimate std.error statistic  p.value
+##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+## 1 (Intercept) -4305.      97.2      -44.3  0.      
+## 2 blength       127.       1.98      64.2  0.      
+## 3 gaweeks        26.3      1.71      15.4  6.56e-52
+## 4 fincome         1.73     0.195      8.87 1.04e-18
+## 5 smoken         -3.04     0.681     -4.47 8.15e- 6</code></pre>
 </div>
 
 

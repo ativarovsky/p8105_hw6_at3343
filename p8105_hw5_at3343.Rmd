@@ -51,3 +51,13 @@ bwt_data %>%
 ```
 
 We confirm there are no missing values in the dataset. 
+
+Try fitting a model. Hypothesize....
+
+```{r}
+
+bwt_data %>%  
+  lm(bwt ~ blength + gaweeks + fincome + pnumlbw + smoken, data = .) %>% 
+  broom::tidy()
+```
+
