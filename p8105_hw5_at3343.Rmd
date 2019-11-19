@@ -9,6 +9,7 @@ Setup code:
 
 ```{r setup}
 library(tidyverse)
+library(modelr)
 
 set.seed(1)
 
@@ -52,12 +53,29 @@ bwt_data %>%
 
 We confirm there are no missing values in the dataset. 
 
-Try fitting a model. Hypothesize....
+Next, we hypothesize that birthweight can be modeled with predictors `blength` (baby's length at birth), `gaweeks` (gestational age in weeks), `fincome` (family monthly income), `pnumlbw` (previous number of low birthweight babies) and `smoken` (average number of cigarettes smoked per day during pregnancy). 
 
 ```{r}
 
-bwt_data %>%  
-  lm(bwt ~ blength + gaweeks + fincome + pnumlbw + smoken, data = .) %>% 
-  broom::tidy()
+model_1 = 
+  bwt_data %>%  
+  lm(bwt ~ blength + gaweeks + fincome + pnumlbw + smoken, data = .) 
+
+bwt_data %>% 
+  add_residuals(model_1)
 ```
+
+Using cross-validation: 
+
+```{r}
+#cv_bwt = 
+ # crossv_mc(bwt_data, 100)
+  
+```
+
+
+
+
+
+
 
