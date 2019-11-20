@@ -62,15 +62,26 @@ model_1 =
   lm(bwt ~ blength + gaweeks + fincome + pnumlbw + smoken, data = .) 
 
 bwt_data %>% 
-  add_residuals(model_1)
+  add_residuals(model_1) %>% 
+  add_predictions(model_1) %>% 
+  ggplot(aes(x = pred, y = resid)) + 
+  geom_point()
+
+
 ```
 
 Using cross-validation: 
 
 ```{r}
-#cv_bwt = 
- # crossv_mc(bwt_data, 100)
+cv_bwt = 
+  crossv_mc(bwt_data, 100)
   
+cv_bwt = 
+  cv_bwt %>% 
+  mutate(
+    train = map(train, as_tibble), 
+    test = map(test, as_tibble)
+  )
 ```
 
 
