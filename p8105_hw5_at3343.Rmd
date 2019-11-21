@@ -10,6 +10,7 @@ Setup code:
 ```{r setup}
 library(tidyverse)
 library(modelr)
+library(MASS)
 
 set.seed(1)
 
@@ -40,7 +41,7 @@ bwt_data =
     frace = as_factor(frace),
     malform = as_factor(malform), 
     mrace = as_factor(mrace)
-  ) 
+  ) %>% view()
 
 ```
 The resulting dataset contains 4342 observations across 20 variables. Numerical  variables were converted to categorical variables based on the data dictionary using as_factor. 
@@ -69,6 +70,25 @@ bwt_data %>%
 
 
 ```
+
+Using all_possible_regression: 
+
+```{r}
+ols_model = 
+  bwt_data %>%  
+  lm(bwt ~ babysex + bhead + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, data = .) 
+
+```
+
+Using AIC: 
+
+```{r}
+full_model = lm(bwt ~. , data = bwt_data)
+
+stepAIC(full_model, direction = "both")
+  
+```
+
 
 Using cross-validation: 
 
