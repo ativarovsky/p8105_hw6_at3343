@@ -120,15 +120,22 @@ Fitting candidate models:
 cv_bwt = 
   cv_bwt %>% 
   mutate(model_a = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
-         model_b = map(train, ~lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + blength*babysex + blength*babysex*bhead, data = .x))
-        # aic_model = map(train, ~lm(bwt ~ babysex + bhead + blength + delwt + fincome + gaweeks + mheight + mrace + parity + ppwt + smoken, data = .))
-    )   
-  #mutate(rmse_a = map2_dbl(model_a, test, ~rmse(model = .x, data = .y)),
-         #rmse_b = map2_dbl(model_b, test, ~rmse(model = .x, data = .y)))
-         #rmse_aic = map2_dbl(aic_model), test, ~rmse(model = .x, data = .y))
+         model_b = map(train, ~lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + blength*babysex + blength*babysex*bhead, data = .x)),
+         aic_model = map(train, ~lm(bwt ~ babysex + bhead + blength + delwt + fincome + gaweeks + mheight + mrace + parity + ppwt + smoken, data = .))
+  ) %>% 
+  mutate(rmse_a = map2_dbl(model_a, test, ~rmse(model = .x, data = .y)),
+         rmse_b = map2_dbl(model_b, test, ~rmse(model = .x, data = .y)),
+         rmse_aic = map2_dbl(aic_model, test, ~rmse(model = .x, data = .y))) 
          
 ```  
 
+CV Plots: 
+```{r}
+error_plot = 
+  cv_bwt %>% 
+  dplyr::select(rmse_a) 
+
+```
 
 
 
@@ -146,18 +153,33 @@ weather_df =
                       USS0023B17S = "Waterhole_WA"),
     tmin = tmin / 10,
     tmax = tmax / 10) %>%
-  select(name, id, everything())
+  dplyr::select(name, id, everything())
 weather_df
 ```
 
 Drawing bootstrap samples: 
 
-```{r}
-boot_straps = 
-  weather_df %>% 
-  modelr::bootstrap(n = 1000)
-```
 
+```{r}
+boot_weather = 
+  weather_df %>% 
+  modelr::bootstrap(n = 100) %>% 
+  mutate(
+    models = map(strap, ~lm(tmax ~ tmin, data = .x)),
+    results = map(models, broom::tidy), 
+    glance = map(models, broom::glance)) %>% 
+  dplyr::select(results, glance) %>% 
+  unnest(results, glance) %>% 
+  dplyr::select(term,estimate) %>% 
+  pivot_wider(
+    names_from = term, 
+    values_from = estimate)  %>% 
+  unnest() %>% 
+  janitor::clean_names() %>% 
+  mutate(log_est = intercept * tmin)
+  
+
+```
 
 
 
