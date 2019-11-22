@@ -41,7 +41,7 @@ bwt_data =
     frace = as_factor(frace),
     malform = as_factor(malform), 
     mrace = as_factor(mrace)
-  ) %>% view()
+  ) 
 
 ```
 The resulting dataset contains 4342 observations across 20 variables. Numerical  variables were converted to categorical variables based on the data dictionary using as_factor. 
@@ -89,22 +89,49 @@ stepAIC(full_model, direction = "both")
   
 ```
 
+AIC analysis concludes that variables babysex, bhead, blength, delwt, fincome, gaweeks, mheight, mrace, parity, ppwt, and smoken belong in the model. Using this model: 
 
-Using cross-validation: 
+```{r}
+aic_model = 
+  bwt_data %>%  
+  lm(bwt ~ babysex + bhead + blength + delwt + fincome + gaweeks + mheight + mrace + parity + ppwt + smoken, data = .) 
+
+bwt_data %>% 
+  add_residuals(aic_model) %>% 
+  add_predictions(aic_model) %>% 
+  ggplot(aes(x = pred, y = resid)) + 
+  geom_point()
+
+```
+
+### Cross Validation
+
+Creating testing and training datasets: 
 
 ```{r}
 cv_bwt = 
-  crossv_mc(bwt_data, 100)
-  
-cv_bwt = 
-  cv_bwt %>% 
-  mutate(
-    train = map(train, as_tibble), 
-    test = map(test, as_tibble)
-  )
+  crossv_mc(bwt_data, 100) 
+```
+
+Fitting candidate models: 
+
+```{r}
+
+#cv_bwt = 
+#  cv_bwt %>% 
+#  mutate(model_a = map(train, ~lm(bwt ~ blength + gaweeks), data = .x))
+         
+```  
+
+```{r}
+         #model_b = map(train, ~lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + blength*babysex + blength*babysex*bhead), data = .x))  %>% 
+  #mutate(rmse_a = map2_dbl(model_a, test, ~rmse(model = .x, data = .y)),
+         #rmse_b = map2_dbl(model_b, test, ~rmse(model = .x, data = .y)))
+         #rmse_aic = map2_dbl(aic_model), test, ~rmse(model = .x, data = .y))
 ```
 
 
+# Problem 2
 
 
 
