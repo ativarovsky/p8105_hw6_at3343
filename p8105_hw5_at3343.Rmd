@@ -117,22 +117,46 @@ Fitting candidate models:
 
 ```{r}
 
-#cv_bwt = 
-#  cv_bwt %>% 
-#  mutate(model_a = map(train, ~lm(bwt ~ blength + gaweeks), data = .x))
-         
-```  
-
-```{r}
-         #model_b = map(train, ~lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + blength*babysex + blength*babysex*bhead), data = .x))  %>% 
+cv_bwt = 
+  cv_bwt %>% 
+  mutate(model_a = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
+         model_b = map(train, ~lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + blength*babysex + blength*babysex*bhead, data = .x))
+        # aic_model = map(train, ~lm(bwt ~ babysex + bhead + blength + delwt + fincome + gaweeks + mheight + mrace + parity + ppwt + smoken, data = .))
+    )   
   #mutate(rmse_a = map2_dbl(model_a, test, ~rmse(model = .x, data = .y)),
          #rmse_b = map2_dbl(model_b, test, ~rmse(model = .x, data = .y)))
          #rmse_aic = map2_dbl(aic_model), test, ~rmse(model = .x, data = .y))
-```
+         
+```  
+
+
 
 
 # Problem 2
 
+```{r}
+weather_df = 
+  rnoaa::meteo_pull_monitors(c("USW00094728", "USC00519397", "USS0023B17S"),
+                      var = c("PRCP", "TMIN", "TMAX"), 
+                      date_min = "2017-01-01",
+                      date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY", 
+                      USC00519397 = "Waikiki_HA",
+                      USS0023B17S = "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+weather_df
+```
+
+Drawing bootstrap samples: 
+
+```{r}
+boot_straps = 
+  weather_df %>% 
+  modelr::bootstrap(n = 1000)
+```
 
 
 
