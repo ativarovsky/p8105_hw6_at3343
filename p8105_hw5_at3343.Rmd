@@ -11,6 +11,7 @@ Setup code:
 library(tidyverse)
 library(modelr)
 library(MASS)
+library(patchwork)
 
 set.seed(1)
 
@@ -133,7 +134,15 @@ CV Plots:
 ```{r}
 error_plot = 
   cv_bwt %>% 
-  dplyr::select(rmse_a) 
+  dplyr::select(starts_with("rmse")) %>% 
+  pivot_longer(
+    everything(),
+    names_to = "model", 
+    values_to = "rmse",
+    names_prefix = "rmse_") %>% 
+  mutate(model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) + 
+  geom_violin()
 
 ```
 
@@ -159,10 +168,9 @@ weather_df
 
 Drawing bootstrap samples: 
 
-
 ```{r}
-boot_weather = 
-  weather_df %>% 
+boot_weather =
+weather_df %>% 
   modelr::bootstrap(n = 100) %>% 
   mutate(
     models = map(strap, ~lm(tmax ~ tmin, data = .x)),
@@ -170,16 +178,32 @@ boot_weather =
     glance = map(models, broom::glance)) %>% 
   dplyr::select(results, glance) %>% 
   unnest(results, glance) %>% 
-  dplyr::select(term,estimate) %>% 
+  janitor::clean_names() %>% 
+  dplyr::select(term,estimate, r_squared) %>% 
   pivot_wider(
     names_from = term, 
     values_from = estimate)  %>% 
-  unnest() %>% 
   janitor::clean_names() %>% 
-  mutate(log_est = intercept * tmin)
+  mutate(log_est = log(intercept * tmin)) 
   
+r_squared_plot = 
+  boot_weather %>% 
+  ggplot(aes(x = r_squared)) +
+  geom_density()
 
+log_est_plot = 
+  boot_weather %>% 
+  ggplot(aes(x = log_est)) +
+  geom_density()
+
+(r_squared_plot + log_est_plot)
 ```
 
+confidence interval: 
+
+```{r}
+
+pull(boot_weather, r_squared) %>% quantile(c(0.025, .975))
+```
 
 
