@@ -32,7 +32,9 @@ theme_set(theme_minimal() + theme(legend.position = "bottom"))
 
 ## Problem 1
 
-Loading and tidying data: 
+### Data tidying and analysis
+
+Loading and tidying birthweight dataset: 
 
 ```{r}
 bwt_data = 
@@ -47,7 +49,7 @@ bwt_data =
 ```
 The resulting dataset contains 4342 observations across 20 variables. Numerical  variables were converted to categorical variables based on the data dictionary using as_factor. 
 
-Checking for missing values using purrr: 
+Next, we check for missing values using purrr: 
 ```{r}
 bwt_data %>% 
   map_df(~sum(is.na(.)))
@@ -55,33 +57,9 @@ bwt_data %>%
 
 We confirm there are no missing values in the dataset. 
 
-Next, we hypothesize that birthweight can be modeled with predictors `blength` (baby's length at birth), `gaweeks` (gestational age in weeks), `fincome` (family monthly income), `pnumlbw` (previous number of low birthweight babies) and `smoken` (average number of cigarettes smoked per day during pregnancy). 
+### Model-building using AIC
 
-```{r}
-
-model_1 = 
-  bwt_data %>%  
-  lm(bwt ~ blength + gaweeks + fincome + pnumlbw + smoken, data = .) 
-
-bwt_data %>% 
-  add_residuals(model_1) %>% 
-  add_predictions(model_1) %>% 
-  ggplot(aes(x = pred, y = resid)) + 
-  geom_point()
-
-
-```
-
-Using all_possible_regression: 
-
-```{r}
-ols_model = 
-  bwt_data %>%  
-  lm(bwt ~ babysex + bhead + blength + delwt + fincome + frace + gaweeks + malform + menarche + mheight + momage + mrace + parity + pnumlbw + pnumsga + ppbmi + ppwt + smoken + wtgain, data = .) 
-
-```
-
-Using AIC: 
+Next, we use stepwise AIC model-building analysis, which evaluates goodness-of-fit against model simplicity in a stepwise fashion to propose a linear regression model: 
 
 ```{r}
 full_model = lm(bwt ~. , data = bwt_data)
@@ -90,31 +68,49 @@ stepAIC(full_model, direction = "both")
   
 ```
 
-AIC analysis concludes that variables babysex, bhead, blength, delwt, fincome, gaweeks, mheight, mrace, parity, ppwt, and smoken belong in the model. Using this model: 
+
+AIC analysis concludes that variables babysex, bhead, blength, delwt, fincome, gaweeks, mheight, mrace, parity, ppwt, and smoken are valuable predictors in the model. We use this model to fit a regression line: 
 
 ```{r}
 aic_model = 
   bwt_data %>%  
   lm(bwt ~ babysex + bhead + blength + delwt + fincome + gaweeks + mheight + mrace + parity + ppwt + smoken, data = .) 
 
+```
+
+The resulting model has a strong R-squared of 71.81% and a significant global F-test (p-value = 0). 
+
+Next we plot the residuals versus the fitted values. 
+
+```{r}
+
 bwt_data %>% 
   add_residuals(aic_model) %>% 
   add_predictions(aic_model) %>% 
   ggplot(aes(x = pred, y = resid)) + 
-  geom_point()
+  geom_point() +
+  labs(
+    title = "Residual Plot for Proposed Model",
+    x = "Predicted Value", 
+    y = "Residual"
+  )
 
 ```
 
-### Cross Validation
+The residual plot resulting from the proposed model indicates potential problems with the model, particularly at values below 1500 grams, where the residuals appear to follow a non-random pattern. 
 
-Creating testing and training datasets: 
+### Cross-Validation
+
+Next we use cross-validation methods to compare the proposed model to two other models. 
+
+First we create the testing and training datasets: 
 
 ```{r}
 cv_bwt = 
   crossv_mc(bwt_data, 100) 
 ```
 
-Fitting candidate models: 
+Next, we use the datasets to fit two more candidate models: one that uses only the main effects of length at birth and gestational age, and one using head circumference, length, sex, and all associated interactions. We create a new dataframe using the computed prediction errors from the three candidate models. 
 
 ```{r}
 
@@ -130,7 +126,9 @@ cv_bwt =
          
 ```  
 
-CV Plots: 
+
+Finally, we generate comparison plots using rmse: 
+
 ```{r}
 error_plot = 
   cv_bwt %>% 
@@ -142,13 +140,22 @@ error_plot =
     names_prefix = "rmse_") %>% 
   mutate(model = fct_inorder(model)) %>% 
   ggplot(aes(x = model, y = rmse)) + 
-  geom_violin()
+  geom_violin() +
+  labs(
+    title = "Plot of rmse for candidate models",
+    x = "Model", 
+    y = "rmse"
+  )
+
+error_plot
 
 ```
 
-
+Based on the rmse plot, the original model built from AIC analysis is the best model since, overall, it produces the smallest prediction errors. 
 
 # Problem 2
+
+This problem will be completed using data from the rnoaa package. We load and tidy the data: 
 
 ```{r}
 weather_df = 
@@ -166,12 +173,14 @@ weather_df =
 weather_df
 ```
 
-Drawing bootstrap samples: 
+Using the `weather_df` dataset, we draw 5000 bootstrap samples and fit a linear regression with `tmax` as the response and `tmin` as the predictor. We are interested in the model r-squared and the value of log(beta_0 * beta_1). 
+
+Here, we draw the bootstrap samples and create a dataframe containing the values of interest.
 
 ```{r}
 boot_weather =
 weather_df %>% 
-  modelr::bootstrap(n = 100) %>% 
+  modelr::bootstrap(n = 5000) %>% 
   mutate(
     models = map(strap, ~lm(tmax ~ tmin, data = .x)),
     results = map(models, broom::tidy), 
@@ -186,24 +195,44 @@ weather_df %>%
   janitor::clean_names() %>% 
   mutate(log_est = log(intercept * tmin)) 
   
+```
+
+Next we plot the distributions of r-squared and log(beta_0 * beta_1). 
+
+```{r}
 r_squared_plot = 
   boot_weather %>% 
   ggplot(aes(x = r_squared)) +
-  geom_density()
+  geom_density() +
+  labs(
+    title = "R Squared Plot", 
+    x = "r-squared", 
+    y = "Density"
+  )
 
 log_est_plot = 
   boot_weather %>% 
   ggplot(aes(x = log_est)) +
-  geom_density()
+  geom_density() + 
+  labs(
+    title = "Plot of log(beta_0 * beta_1)", 
+    x = "log(beta_0 * beta_1", 
+    y = "Density"
+  )
 
 (r_squared_plot + log_est_plot)
 ```
+<br>
+Both values are normally distributed with small "shoulders" on the left side, most likely due to the influence of outliers. 
 
-confidence interval: 
+Finally, we compute 2.5% and 97.5% quantiles to provide a 95% confidence interval for `r_squared` and `log_est`. 
 
 ```{r}
 
 pull(boot_weather, r_squared) %>% quantile(c(0.025, .975))
+
+pull(boot_weather, log_est) %>% quantile(c(0.025, .975))
 ```
 
-
+Based on the bootstrap sample, the 95% confidence interval for r-squared is (0.9368292, 0.9487296) and the 95% confidence interval for log(beta_0 * beta_1) is (2.017156, 2.065878). 
+<br><br>
